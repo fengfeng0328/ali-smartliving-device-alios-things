@@ -1,0 +1,12 @@
+[submodule "Products/Smart_lighting/smart_led_bulb"]
+	path = Products/Smart_lighting/smart_led_bulb
+	url = git@code.aliyun.com:living_platform/smart_led_bulb.git
+	branch = rel_1.3.0
+[submodule "Products/Smart_lighting/smart_led_strip"]
+	path = Products/Smart_lighting/smart_led_strip
+	url = git@code.aliyun.com:living_platform/smart_led_strip.git
+	branch = rel_1.3.0
+[submodule "Products/Smart_outlet/smart_outlet_meter"]
+	path = Products/Smart_outlet/smart_outlet_meter
+	url = git@code.aliyun.com:living_platform/smart_outlet_with_meter.git
+	branch = rel_1.3.0
