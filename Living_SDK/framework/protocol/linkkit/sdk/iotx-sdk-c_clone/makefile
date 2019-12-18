@@ -13,7 +13,6 @@ COMP_LIB_COMPONENTS := \
     src/infra/log \
     src/infra/system \
     src/sdk-impl \
-    src/services/timer_service \
     src/services/dev_diagnosis \
 
 $(call CompLib_Map, FEATURE_MQTT_COMM_ENABLED,  src/protocol/mqtt)

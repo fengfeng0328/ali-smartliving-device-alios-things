@@ -41,7 +41,6 @@ $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/dev_bind \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/dev_bind/os \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/dev_bind/utility \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/awss \
-$(ROOT_DIR)middleware/linkkit/sdk-c/src/services/timer_service \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/dev_diagnosis \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/linkkit/dm \
 $(ROOT_DIR)middleware/linkkit/sdk-c/src/services/linkkit/cm \

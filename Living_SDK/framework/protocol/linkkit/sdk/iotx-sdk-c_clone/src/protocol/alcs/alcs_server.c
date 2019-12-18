@@ -523,7 +523,7 @@ static secure_resource_cb_item *get_resource_by_path(const char *path)
     COAP_ERR("receive unknown request, path:%s", path);
     return NULL;
 }
-
+#ifdef ALCS_GROUP_COMM_ENABLE
 void group_msg_handler (CoAPContext *context, const char *path, NetworkAddr *remote, CoAPMessage *message)
 {
     int seq;
@@ -578,6 +578,7 @@ void group_msg_handler (CoAPContext *context, const char *path, NetworkAddr *rem
         coap_free (buf);
     }
 }
+#endif
 
 void p2p_msg_handler(CoAPContext *context, const char *path, NetworkAddr *remote, CoAPMessage *message)
 {
