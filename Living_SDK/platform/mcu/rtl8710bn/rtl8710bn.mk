@@ -117,7 +117,12 @@ GLOBAL_CFLAGS += -w
 
 GLOBAL_LDFLAGS += -L $(SOURCE_ROOT)/platform/mcu/rtl8710bn
 #GLOBAL_LDFLAGS += -I $(SOURCE_ROOT)/platform/mcu/rtl8710bn
-GLOBAL_LDFLAGS += -T $(SOURCE_ROOT)/platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip1.ld
+ifeq ($(CONFIG_BOARD_NAME), AMEBAZ)
+# GLOBAL_LDFLAGS += -T $(SOURCE_ROOT)/platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip1.ld
+else
+GLOBAL_LDFLAGS += -T $(SOURCE_ROOT)/platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip1_mxchip.ld
+endif
+
 #GLOBAL_LDFLAGS += $(SOURCE_ROOT)/platform/mcu/rtl8710bn/bin/boot_all.o
 GLOBAL_LDFLAGS += -L$(SOURCE_ROOT)/platform/mcu/rtl8710bn/lib/ -l_platform -l_wlan -l_wps -l_p2p -l_rtlstd
 
@@ -171,8 +176,13 @@ $(NAME)_SOURCES := aos/soc_impl.c          \
                    hal/wifi_port.c \
                    hal/gpio.c \
                    hal/wdg.c \
-                   hal/ota.c \
                    hal/pwm.c
+
+ifeq ($(CONFIG_BOARD_NAME), AMEBAZ)
+$(NAME)_SOURCES += hal/ota_port.c
+else
+$(NAME)_SOURCES += hal/ota.c
+endif
 
 #$(NAME)_SOURCES  += hal/uart.c
 #$(NAME)_SOURCES  += hal/flash.c
@@ -186,3 +196,13 @@ $(NAME)_SOURCES  += hal/pwrmgmt_hal/board_cpu_pwr.c
 
 
 #$(NAME)_COMPONENTS += platform/mcu/rtl8710bn/peripherals
+
+ifeq ($(CONFIG_BOARD_NAME), AMEBAZ)
+PING_PONG_OTA := 1
+ifeq ($(PING_PONG_OTA),1)
+AOS_IMG1_XIP1_LD_FILE += platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip1.ld
+AOS_IMG2_XIP2_LD_FILE += platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip2.ld
+else
+GLOBAL_LDS_FILES += platform/mcu/rtl8710bn/script/rlx8711B-symbol-v02-img2_xip1.ld
+endif
+endif

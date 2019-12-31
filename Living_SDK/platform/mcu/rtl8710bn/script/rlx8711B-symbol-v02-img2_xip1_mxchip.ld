@@ -17,7 +17,7 @@ MEMORY
 	ROM (rx) : 			ORIGIN = 0x00000000, LENGTH = 0x80000	/* ROM: 512k */
 	ROMBSS_RAM (rw)  : 		ORIGIN = 0x10000000, LENGTH = 0x2000	/* ROM BSS RAM: 8K */
 	BOOTLOADER_RAM (rwx)  : 	ORIGIN = 0x10002000, LENGTH = 0x3000	/* BOOT Loader RAM: 12K */
-	BD_RAM (rwx)  : 		ORIGIN = 0x10005000, LENGTH = 0x38000	/* MAIN RAM: 228 */
+	BD_RAM (rwx)  : 		ORIGIN = 0x1000D000, LENGTH = 0x39000	/* MAIN RAM: 228 */
 	ROM_BSS_RAM (rwx)  : 		ORIGIN = 0x1003D000, LENGTH = 0x1000	/* ROM BSS RAM: 4K */
 	MSP_RAM (wx)  : 		ORIGIN = 0x1003E000, LENGTH = 0x1000	/* MSP RAM: 4k */
 	RDP_RAM (wx)  : 		ORIGIN = 0x1003F000, LENGTH = 0xFF0	/* RDP RAM: 4k-0x10 */
@@ -25,8 +25,8 @@ MEMORY
 	XIPBOOT (rx)  :			ORIGIN = 0x08000000+0x20, LENGTH = 0x04000-0x20	/* XIPBOOT: 32k, 32 Bytes resvd for header*/
 	XIPSYS (r) :			ORIGIN = 0x08009000, LENGTH = 0x1000	/* XIPSYS: 4K system data in flash */
 	XIPCAL (r) :			ORIGIN = 0x0800A000, LENGTH = 0x1000	/* XIPCAL: 4K calibration data in flash */
-	XIP1 (rx)  :			ORIGIN = 0x0800B000+0x20, LENGTH = 0xF2000-0x20	/* XIP1: 968k, 32 Bytes resvd for header */
-	XIP2 (rx)  :			ORIGIN = 0x08100000+0x20, LENGTH = 0xF2000-0x20	/* XIP2: 968k, 32 Bytes resvd for header */
+	XIP1 (rx)  : 			ORIGIN = 0x08013000+0x20, LENGTH = 0xB5000-0x20	/* XIP1: 968k, 32 Bytes resvd for header */
+	XIP2 (rx)  : 			ORIGIN = 0x08100000+0x20, LENGTH = 0xF2000-0x20	/* XIP2: 968k, 32 Bytes resvd for header */
 }
 
 
@@ -57,12 +57,12 @@ SECTIONS
 		KEEP(*(.image1.export.symb*))
 	} > BOOTLOADER_RAM
 
-	/*  Add . to assign the start address of the section */ 
-	/*  to prevent the change of the start address by ld doing section alignment */  
+	/*  Add . to assign the start address of the section */
+	/*  to prevent the change of the start address by ld doing section alignment */
 	.ram_image1.text . :
 	{
 		/* image1 text */
-		*(.boot.ram.text*)    
+		*(.boot.ram.text*)
 		*(.boot.rodata*)
 	} > BOOTLOADER_RAM
 
@@ -71,7 +71,7 @@ SECTIONS
 		__ram_image1_data_start__ = .;
 		KEEP(*(.boot.ram.data*))
 		__ram_image1_data_end__ = .;
-	
+
 		__ram_image1_text_end__ = .;
 	} > BOOTLOADER_RAM
 
@@ -90,7 +90,7 @@ SECTIONS
 		KEEP(*(SORT(.image2.entry.data*)))
 
 		__image2_validate_code__ = .;
-		KEEP(*(.image2.validate.rodata*)) 
+		KEEP(*(.image2.validate.rodata*))
 
 	} > BD_RAM
 
@@ -99,15 +99,15 @@ SECTIONS
 	  KEEP(*(.image2.ram.text*))
 	} > BD_RAM
 
-	.ram_image2.data : 
+	.ram_image2.data :
 	{
 		__data_start__ = .;
 		*(.data*)
 		__data_end__ = .;
 		__ram_image2_text_end__ = .;
-		. = ALIGN(16);	
+		. = ALIGN(16);
 	} > BD_RAM
-  
+
 	.ram_image2.bss :
 	{
 		__bss_start__ = .;
@@ -121,7 +121,7 @@ SECTIONS
 		__bss_end__ = .;
 	} > BD_RAM
 
-	.ram_heap.data : 
+	.ram_heap.data :
 	{
 		*(.bfsram.data*)
 	} > BD_RAM
@@ -130,13 +130,13 @@ SECTIONS
 	PROVIDE(heap_start    	  = .);
 	PROVIDE(heap_end    	  = 0x1003CFFF);
 	PROVIDE(heap_len    	  = heap_end - heap_start);
-	
-	.rom.bss : 
+
+	.rom.bss :
 	{
 		*(.heap.stdlib*)
-	} > ROM_BSS_RAM	
-	
-	.ram_rdp.text : 
+	} > ROM_BSS_RAM
+
+	.ram_rdp.text :
 	{
 		__rom_top_4k_start_ = .;
 		__rdp_text_start__ = .;
@@ -144,7 +144,7 @@ SECTIONS
 		KEEP(*(.rdp.ram.data*))
 		__rdp_text_end__ = .;
 		. = ALIGN(16);
-	
+
 	} > RDP_RAM
 
 	.xip_image1.text :
@@ -158,25 +158,25 @@ SECTIONS
 		. = ALIGN(16);
 	} > XIPBOOT
 
-	.xip_image2.text : 
+	.xip_image2.text :
 	{
 		__flash_text_start__ = .;
 
 		*(.img2_custom_signature*)
 		*(.text)
-		*(.text*)  
-		*(.rodata)  
+		*(.text*)
+		*(.rodata)
 		*(.rodata*)
 		*(.debug_trace*)
 
 		__flash_text_end__ = .;
-	
+
 		. = ALIGN (16);
 	} > XIP1
 }
 
-SECTIONS 
-{ 
-	/* Bootloader symbol list */  
-  boot_export_symbol = 0x10002020;  
-} 
+SECTIONS
+{
+	/* Bootloader symbol list */
+	boot_export_symbol = 0x10002020;
+}

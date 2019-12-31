@@ -61,7 +61,7 @@ function build_bin()
 	STRIP=arm-none-eabi-strip
 	ARCH=arch_armv7m
 	p=prebuild/lib
-	CHIP_LIBS="-Wl,--end-group -Wl,-no-whole-archive -Wl,--gc-sections -Wl,--cref -L ./$p/ -l_platform -l_wlan -l_wps -l_p2p -l_rtlstd -T ./$p/script/rlx8711B-symbol-v02-img2_xip1.ld -mcpu=cortex-m4 -mthumb -Os -nostartfiles -Wl,--no-enum-size-warning -Wl,--no-wchar-size-warning -Wl,--gc-sections -Wl,--cref --specs=nano.specs -u _printf_float "
+	CHIP_LIBS="-Wl,--end-group -Wl,-no-whole-archive -Wl,--gc-sections -Wl,--cref -L ./$p/ -l_platform -l_wlan -l_wps -l_p2p -l_rtlstd -T ./$p/script/rlx8711B-symbol-v02-img2_xip1_mxchip.ld -mcpu=cortex-m4 -mthumb -Os -nostartfiles -Wl,--no-enum-size-warning -Wl,--no-wchar-size-warning -Wl,--gc-sections -Wl,--cref --specs=nano.specs -u _printf_float "
 	if [[ "$2" == httpapp ]] || [[ "$2" == coapapp ]];then
 		COMMON_LIBS="$p/$2.a  $p/board_$3.a  $p/$CHIP.a  $p/vcall.a  $p/kernel_init.a  $p/auto_component.a   $p/libiot_sdk.a $p/iotx-hal.a  $p/netmgr.a  $p/framework.a  $p/cjson.a  $p/cli.a   $p/$ARCH.a  $p/newlib_stub.a  $p/rhino.a  $p/digest_algorithm.a  $p/net.a $p/rtl8710bn_SDK.a  $p/rtl8710bn_Peripheral_Drivers.a $p/log.a  $p/activation.a  $p/chip_code.a  $p/imbedtls.a  $p/kv.a  $p/yloop.a  $p/hal.a  $p/alicrypto.a  $p/vfs.a  $p/vfs_device.a   $p/awss_security.a $p/libaiotss.a "
 	else
