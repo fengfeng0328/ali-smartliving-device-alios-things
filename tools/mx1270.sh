@@ -12,7 +12,7 @@ function files_cp()
     cp Living_SDK/framework/protocol/linkkit/sdk/lib/Cortex-M4/libaiotss.a prebuild/lib/
 
     cp Living_SDK/board/$3/gcc_a0v2.ld  prebuild/lib/
-    cp Living_SDK/platform/mcu/asr5501/drivers/libs/Cortex-M4/libasr_wifi.a  prebuild/lib/
+    cp Living_SDK/platform/mcu/asr5501/drivers/libs/Cortex-M4/mcu_52m/libasr_wifi.a  prebuild/lib/
     rm -f prebuild/lib/$2.a
 
 	cp -rfa Living_SDK/include/* prebuild/include

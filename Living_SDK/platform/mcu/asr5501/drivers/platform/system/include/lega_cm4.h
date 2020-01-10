@@ -157,14 +157,22 @@ extern uint32_t system_core_clk;
 //efuse memory
 typedef struct
 {
-    uint8_t mac_addr[6];            //0x90-0x95
+    uint8_t mac_addr0[6];           //0x90-0x95
     uint8_t freq_err;               //0x96
     uint8_t tmmt1;                  //0x97
     uint8_t tmmt2;                  //0x98
     uint8_t cus_tx_pwr[19];         //0x99-0xab
-    uint8_t cal_tx_pwr[6];          //0xac-0xb1
+    uint8_t cal_tx_pwr0[6];         //0xac-0xb1
     uint8_t cus_tx_total_pwr[3];    //0xb2-0xb4
-    uint8_t cal_tx_evm[6];          //0xb5-0xba
+    uint8_t cal_tx_evm0[6];         //0xb5-0xba
+    uint8_t reserved1[5];           //0xbb-0xbf
+    uint8_t mac_addr1[6];           //0xc0-0xc5
+    uint8_t mac_addr2[6];           //0xc6-0xcb
+    uint8_t cal_tx_pwr1[6];         //0xcc-0xd1
+    uint8_t cal_tx_evm1[6];         //0xd2-0xd7
+    uint8_t cal_tx_pwr2[6];         //0xd8-0xdd
+    uint8_t cal_tx_evm2[6];         //0xde-0xe3
+    uint8_t reserved2[12];          //0xe4-0xef
 }efuse_info_t;
 #define EFUSE_INFO_START_ADDR       0x90
 #define EFUSE_INFO_LEN              (sizeof(efuse_info_t))

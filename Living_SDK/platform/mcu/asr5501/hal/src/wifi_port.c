@@ -221,6 +221,17 @@ static int set_channel(hal_wifi_module_t *m, int ch)
     return lega_wlan_monitor_set_channel(ch);
 }
 
+static int get_channel(hal_wifi_module_t *m)
+{
+    return lega_wlan_get_channel();
+}
+
+static int get_channel_list(hal_wifi_module_t *m, const uint8_t **chnlist)
+{
+    printf("WiFi HAL %s not implemeted yet!\r\n", __func__);
+    return 0;
+}
+
 static void wlan_monitor_cb(uint8_t*data, int len, int rssi)
 {
     hal_wifi_link_info_t info;
@@ -460,6 +471,8 @@ hal_wifi_module_t sim_aos_wifi_lega = {
     .suspend_station     =  suspend_station,
     .suspend_soft_ap     =  suspend_soft_ap,
     .set_channel         =  set_channel,
+    .get_channel         =  get_channel,
+    .get_channel_list    =  get_channel_list,
     .start_monitor       =  start_monitor,
     .stop_monitor        =  stop_monitor,
     .register_monitor_cb =  register_monitor_cb,

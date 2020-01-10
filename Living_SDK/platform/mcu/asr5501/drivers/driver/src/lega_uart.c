@@ -53,7 +53,7 @@ void UART_IRQHandler(UART_TypeDef * uart)
     {
         return;
     }
-    if(UART_Get_Data_Ready_Status(uart, DW_UART_LSR_DR) != RESET)
+    while(UART_Get_Data_Ready_Status(uart, DW_UART_LSR_DR) != RESET)
     {
         res = UART_ReceiveData(uart);
         ch = (char)res;
@@ -274,7 +274,7 @@ int32_t lega_uart_init(lega_uart_dev_t *uart)
 
     UARTx->MCR |= flow_control;
     //enable  FIFO
-    UARTx->FCR |= DW_UART_FCR_FIFO_ENABLE;
+    UARTx->FCR |= (DW_UART_FCR_FIFO_ENABLE|DW_UART_FCR_FIFO_RCVR_HALF_FULL);
     //enable rx interrupt
     UARTx->IER = DW_UART_IER_RX_INT_EN;
 

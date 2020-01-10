@@ -485,6 +485,11 @@ void sys_arch_unprotect(sys_prot_t pval);
                               } while(0)
 #endif /* SYS_ARCH_SET */
 
+#if LWIP_NETCONN_SEM_PER_THREAD
+sys_sem_t* sys_thread_sem_get(void);
+sys_sem_t* sys_thread_sem_init(void);
+void sys_thread_sem_deinit(void);
+#endif /* #if LWIP_NETCONN_SEM_PER_THREAD */
 
 #ifdef __cplusplus
 }

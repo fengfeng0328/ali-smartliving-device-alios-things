@@ -13,8 +13,6 @@
 #include "vendor.h"
 #include "device_state_manger.h"
 
-#define KV_KEY_CONSUMPTION "OUTLET_CONSUMPTION"
-
 #define USER_EXAMPLE_YIELD_TIMEOUT_MS (30)
 
 #ifdef AOS_TIMER_SERVICE
@@ -45,11 +43,18 @@ void example_free(void *ptr)
     HAL_Free(ptr);
 }
 
+void update_power_state(int state)
+{
+    user_example_ctx_t *user_example_ctx = user_example_get_ctx();
+
+    user_example_ctx->power_switch = state;
+}
+
 static void user_deviceinfo_update(void)
 {
     int res = 0;
     user_example_ctx_t *user_example_ctx = user_example_get_ctx();
-    char *device_info_update = "[{\"attrKey\":\"OutletFWVersion\",\"attrValue\":\"1.0\"}]";
+    char *device_info_update = "[{\"attrKey\":\"OutletFWVersion\",\"attrValue\":\"1.3.1\"}]";
 
     res = IOT_Linkkit_Report(user_example_ctx->master_devid, ITM_MSG_DEVICEINFO_UPDATE,
                              (unsigned char *)device_info_update, strlen(device_info_update));
@@ -114,8 +119,8 @@ static int user_property_set_event_handler(const int devid, const char *request,
         } else {
             product_set_switch(OFF);
         }
-    } else {
 #ifdef AOS_TIMER_SERVICE
+    } else {
         timer_service_property_set(request);
 #endif
     }
@@ -131,16 +136,105 @@ static int user_property_set_event_handler(const int devid, const char *request,
 static int user_property_get_event_handler(const int devid, const char *request, const int request_len, char **response,
         int *response_len)
 {
-#ifdef AOS_TIMER_SERVICE
-    *response = timer_service_property_get(request);
-    if (*response == NULL) {
-        LOG_TRACE("No Enough Memory");
+    user_example_ctx_t *user_example_ctx = user_example_get_ctx();
+    cJSON *request_root = NULL, *item_propertyid = NULL;
+    cJSON *response_root = NULL;
+
+    LOG_TRACE("Property Get Received, Devid: %d, Request: %s", devid, request);
+    request_root = cJSON_Parse(request);
+    if (request_root == NULL || !cJSON_IsArray(request_root)) {
+        LOG_TRACE("JSON Parse Error");
         return -1;
     }
-    *response_len = strlen(*response);
-#endif
-    LOG_TRACE("Property Get Response: %s", *response);
 
+    response_root = cJSON_CreateObject();
+    if (response_root == NULL) {
+        LOG_TRACE("No Enough Memory");
+        cJSON_Delete(request_root);
+        return -1;
+    }
+
+    for (int index = 0; index < cJSON_GetArraySize(request_root); index++) {
+        item_propertyid = cJSON_GetArrayItem(request_root, index);
+        if (item_propertyid == NULL || !cJSON_IsString(item_propertyid)) {
+            LOG_TRACE("JSON Parse Error");
+            cJSON_Delete(request_root);
+            cJSON_Delete(response_root);
+            return -1;
+        }
+        LOG_TRACE("Property ID, index: %d, Value: %s", index, item_propertyid->valuestring);
+        if (strcmp("PowerSwitch", item_propertyid->valuestring) == 0) {
+            cJSON_AddNumberToObject(response_root, "PowerSwitch", user_example_ctx->power_switch);
+#ifdef AOS_TIMER_SERVICE
+        } else if (strcmp("LocalTimer", item_propertyid->valuestring) == 0) {
+            char *local_timer_str = NULL;
+
+            if (NULL != (local_timer_str = timer_service_property_get("[\"LocalTimer\"]"))) {
+                LOG_TRACE("local_timer %s", local_timer_str);
+                cJSON *property = NULL, *value = NULL;
+
+                property = cJSON_Parse(local_timer_str);
+                if (property == NULL) {
+                    LOG_TRACE("No Enough Memory");
+                    continue;
+                }
+                value = cJSON_GetObjectItem(property, "LocalTimer");
+                if (value == NULL) {
+                    LOG_TRACE("No Enough Memory");
+                    cJSON_Delete(property);
+                    continue;
+                }
+                cJSON *dup_value = cJSON_Duplicate(value, 1);
+
+                cJSON_AddItemToObject(response_root, "LocalTimer", dup_value);
+                cJSON_Delete(property);
+                example_free(local_timer_str);
+            } else {
+                cJSON *array = cJSON_CreateArray();
+                cJSON_AddItemToObject(response_root, "LocalTimer", array);
+            }
+        } else if (strcmp("CountDownList", item_propertyid->valuestring) == 0) {
+            char *count_down_list_str = NULL;
+
+            if (NULL != (count_down_list_str = timer_service_property_get("[\"CountDownList\"]"))) {
+                LOG_TRACE("CountDownList %s", count_down_list_str);
+                cJSON *property = NULL, *value = NULL;
+
+                property = cJSON_Parse(count_down_list_str);
+                if (property == NULL) {
+                    LOG_TRACE("No Enough Memory");
+                    continue;
+                }
+                value = cJSON_GetObjectItem(property, "CountDownList");
+                if (value == NULL) {
+                    LOG_TRACE("No Enough Memory");
+                    cJSON_Delete(property);
+                    continue;
+                }
+                cJSON *dup_value = cJSON_Duplicate(value, 1);
+
+                cJSON_AddItemToObject(response_root, "CountDownList", dup_value);
+                cJSON_Delete(property);
+                example_free(count_down_list_str);
+            } else {
+                cJSON_AddStringToObject(response_root, "CountDownList", "");
+            }
+#endif
+        }
+    }
+
+    cJSON_Delete(request_root);
+
+    *response = cJSON_PrintUnformatted(response_root);
+    if (*response == NULL) {
+        LOG_TRACE("cJSON_PrintUnformatted Error");
+        cJSON_Delete(response_root);
+        return -1;
+    }
+    cJSON_Delete(response_root);
+    *response_len = strlen(*response);
+
+    LOG_TRACE("Property Get Response: %s", *response);
     return SUCCESS_RETURN;
 }
 #endif
@@ -322,10 +416,8 @@ void user_post_powerstate(int powerstate)
     int res = 0;
     user_example_ctx_t *user_example_ctx = user_example_get_ctx();
     char property_payload[64];
-#ifdef AOS_TIMER_SERVICE
-    snprintf(property_payload, sizeof(property_payload), "{\"%s\":%d}", control_targets_list[0], powerstate);
-    timer_service_property_set(property_payload);
-#endif
+
+    snprintf(property_payload, sizeof(property_payload), "{\"%s\":%d}", "PowerSwitch", powerstate);
     res = IOT_Linkkit_Report(user_example_ctx->master_devid, ITM_MSG_POST_PROPERTY,
             property_payload, strlen(property_payload));
 
@@ -339,13 +431,7 @@ void user_post_property_after_connected(void)
     user_example_ctx_t *user_example_ctx = user_example_get_ctx();
     char property_payload[64];
 
-#ifdef AOS_TIMER_SERVICE
-    snprintf(property_payload, sizeof(property_payload),
-            "{\"%s\":%d}",
-            control_targets_list[0], powerswitch);
-
-    timer_service_property_set(property_payload);
-#endif
+    snprintf(property_payload, sizeof(property_payload), "{\"%s\":%d}", "PowerSwitch", powerswitch);
     res = IOT_Linkkit_Report(user_example_ctx->master_devid, ITM_MSG_POST_PROPERTY,
             property_payload, strlen(property_payload));
 

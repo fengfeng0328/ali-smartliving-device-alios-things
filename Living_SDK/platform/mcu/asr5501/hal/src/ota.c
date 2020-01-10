@@ -19,8 +19,6 @@ static unsigned int _offset = 0;
 
 #define TMP_BUF_LEN 1024
 
-void lega_clk_sel_low(void);
-
 int ota_image_check(uint32_t image_size)
 {
     uint32_t filelen, flashaddr, len = 0, left;
@@ -131,6 +129,7 @@ static int ota_init(void *something)
         ret = OTA_PARAM_FAIL;
         return ret;
     }
+
     if (param->off_bp == 0)
     {
         int ret = 0;
@@ -210,7 +209,6 @@ static int ota_boot(void *something)
             OTA_LOG_I("ota finished, switch to new firmware ...");
             hal_ota_switch(param->len - 16, param->crc);
         }
-        lega_clk_sel_low();
         ota_reboot();
     }
     return ret;
@@ -230,7 +228,7 @@ static const char *ota_get_version(unsigned char dev_type)
     }
     else
     {
-        return SYSINFO_APP_VERSION;
+        return aos_get_app_version();
     }
 }
 

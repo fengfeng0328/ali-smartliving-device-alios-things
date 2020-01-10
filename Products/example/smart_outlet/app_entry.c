@@ -590,7 +590,7 @@ int application_start(int argc, char **argv)
 #endif
     aos_cli_register_command(&linkkeycmd);
 
-    aos_task_new_ext(&task_key_detect, "detect key pressed", key_detect_event_task, NULL, 4096, AOS_DEFAULT_APP_PRI);
+    aos_task_new_ext(&task_key_detect, "detect key pressed", key_detect_event_task, NULL, 1024, AOS_DEFAULT_APP_PRI);
 
     check_factory_mode();
 

@@ -11,7 +11,15 @@ typedef enum {
     ON
 } eSwitchState;
 
+typedef enum {
+    POWER_OFF = 0,
+    POWER_ON = 1,
+    LAST_STATE
+} eRebootState;
+
 #define KV_KEY_SWITCH_STATE "OUTLET_SWITCH_STATE"
+
+#define REBOOT_STATE LAST_STATE
 /**
  * @brief product init.
  *

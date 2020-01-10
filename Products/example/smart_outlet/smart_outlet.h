@@ -25,6 +25,7 @@ typedef struct {
     int cloud_connected;
     int master_initialized;
     int bind_notified;
+    int power_switch;
 } user_example_ctx_t;
 
 user_example_ctx_t *user_example_get_ctx(void);

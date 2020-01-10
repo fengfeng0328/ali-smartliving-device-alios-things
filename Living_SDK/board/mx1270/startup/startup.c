@@ -24,7 +24,6 @@ static ktask_t *g_main_task;
 
 extern void board_init(void);
 
-
 static void sys_init(void)
 {
     board_after_init();
@@ -69,7 +68,6 @@ int main(void)
     lega_flash_alg_cache_flush();
 
     board_init();
-
     /*kernel init, malloc can use after this!*/
     krhino_init();
 

@@ -13,6 +13,7 @@
 #define _LEGA_WIFI_API_H_
 
 #include <stdint.h>
+#include "lega_cm4.h"
 
 /**
  *  @brief  wlan network interface enumeration definition.
@@ -231,6 +232,13 @@ int lega_wlan_stop_monitor(void);
  */
 int lega_wlan_monitor_set_channel(int channel);
 
+/** @brief  used to get current channel both in sta and ap mode
+ *
+ *  @return    1-14 : channel number.
+ *  @return    0   :  no valid channel
+ */
+int lega_wlan_get_channel(void);
+
 /** @brief  used in sta mode, set the ps bc mc and listen interval, called before connect to ap.
  *
  * @param listen_bc_mc    : true or false
@@ -427,5 +435,18 @@ int lega_wlan_set_temperature_get_timer(uint64_t timer_in_sec);
  * @return    other   : error occurred
  */
 int lega_wlan_register_temperature_get_cb(temperature_get_cb_t func);
+
+/* efuse info update callback function, pass customer efuse info to ASR*/
+typedef void (*efuse_info_update_cb_t)(efuse_info_t *efuse_info);
+
+/** @brief  register the efuse info update callback function if efuse layout not same as ASR
+ *  called before hal_wifi_init
+ *
+ * @param func    : the function will be called to pass customer efuse info to ASR.
+ *
+ * @return    0       : on success.
+ * @return    other   : error occurred
+ */
+int lega_wlan_register_efuse_info_update_cb(efuse_info_update_cb_t func);
 
 #endif  //_LEGA_WIFI_API_H_

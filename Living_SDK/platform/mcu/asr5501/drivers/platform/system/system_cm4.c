@@ -3,8 +3,14 @@
 
 void lega_system_reset(void)
 {
+    //disable irq when reboot
+    __disable_irq();
+
+#ifdef HIGHFREQ_MCU160_SUPPORT
     if(system_core_clk == SYSTEM_CORE_CLOCK_HIGH)
         lega_clk_sel_low();
+#endif
+
     NVIC_SystemReset();
 }
 

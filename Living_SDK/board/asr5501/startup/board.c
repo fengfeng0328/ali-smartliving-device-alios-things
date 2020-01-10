@@ -68,7 +68,11 @@ void uart_init(void)
 #ifdef ALIOS_SUPPORT
     //uart_0.port=LEGA_UART1_INDEX;
     uart_0.port = PORT_UART_STD;  /*logic port*/
+#ifdef HIGHFREQ_MCU160_SUPPORT
     uart_0.config.baud_rate=UART_BAUDRATE_1000000;
+#else
+    uart_0.config.baud_rate=UART_BAUDRATE_115200;
+#endif
     uart_0.config.data_width = DATA_8BIT;
     uart_0.config.flow_control = FLOW_CTRL_DISABLED;
     uart_0.config.parity = PARITY_NO;
@@ -78,11 +82,13 @@ void uart_init(void)
 #endif
 }
 
+#ifdef HIGHFREQ_MCU160_SUPPORT
 //all peripheral reinit code should place here
 void peripheral_reinit(void)
 {
     uart_init();
 }
+#endif
 
 #ifdef SYSTEM_RECOVERY
 lega_wdg_dev_t lega_wdg;

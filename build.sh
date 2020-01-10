@@ -183,6 +183,8 @@ elif [[ "${board}" == "mk3080" ]] || [[ "${board}" == "mk3092" ]] || [[ "${board
 	./tools/mk3080.sh  $type $app ${board} ${REGION} ${ENV} ${CONFIG_DEBUG} "${ARGS}"
 elif [[ "${board}" == "mx1270" ]]; then
 	./tools/mx1270.sh  $type $app ${board} ${REGION} ${ENV} ${CONFIG_DEBUG} "${ARGS}"
+elif [[ "${board}" == "asr5501" ]]; then
+	./tools/asr5501.sh  $type $app ${board} ${REGION} ${ENV} ${CONFIG_DEBUG} "${ARGS}"
 else
 	# echo -e "build paras error: you can build board ${board} with follow step: \n cd Living_SDK\n aos make $app@${board} CONFIG_SERVER_REGION=${REGION} CONFIG_SERVER_ENV=${ENV} CONFIG_DEBUG=${CONFIG_DEBUG}"
 	# exit 1

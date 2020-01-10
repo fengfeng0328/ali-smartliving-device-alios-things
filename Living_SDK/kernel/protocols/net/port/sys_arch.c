@@ -42,6 +42,11 @@
 
 static aos_mutex_t sys_arch_mutex;
 
+#if LWIP_NETCONN_SEM_PER_THREAD
+#define TAG "sys_arch"
+static aos_task_key_t sys_thread_sem_key;
+#endif /* #if LWIP_NETCONN_SEM_PER_THREAD */
+
 //#define      NET_TASK_NUME 2
 //#define      NET_TASK_STACK_SIZE 1024
 
@@ -636,5 +641,77 @@ int net_close(int sockfd)
 void sys_init(void)
 {
     aos_mutex_new(&sys_arch_mutex);
+#if LWIP_NETCONN_SEM_PER_THREAD
+    if (aos_task_key_create(&sys_thread_sem_key) != 0) {
+        LOGE(TAG, "%s failed to create thread key");
+        return;
+    }
+#endif /* #if LWIP_NETCONN_SEM_PER_THREAD */
 }
 
+#if LWIP_NETCONN_SEM_PER_THREAD
+/*
+ * get per thread semphore
+ */
+sys_sem_t* sys_thread_sem_get(void)
+{
+  sys_sem_t *sem = (sys_sem_t *)aos_task_getspecific(sys_thread_sem_key);
+
+  if (!sem) {
+      sem = sys_thread_sem_init();
+  }
+
+  //LWIP_DEBUGF(THREAD_SAFE_DEBUG, ("sem_get s=%p\n", sem));
+
+  return sem;
+}
+
+static void sys_thread_sem_free(void* data) // destructor for per-thread semaphore
+{
+  sys_sem_t *sem = (sys_sem_t *)(data);
+
+  if (sem && aos_sem_is_valid(sem)){
+    LWIP_DEBUGF(THREAD_SAFE_DEBUG, ("sem del, sem=%p\n", sem));
+    aos_sem_free(sem);
+  }
+
+  if (sem) {
+    LWIP_DEBUGF(THREAD_SAFE_DEBUG, ("sem pointer del, sem_p=%p\n", sem));
+    aos_free(sem);
+  }
+}
+
+sys_sem_t* sys_thread_sem_init(void)
+{
+  sys_sem_t *sem = (sys_sem_t *)aos_malloc(sizeof(sys_sem_t *));
+
+  if (!sem){
+    LOGE(TAG, "thread_sem_init: out of memory");
+    return NULL;
+  }
+
+  if (aos_sem_new(sem, 0) != 0) {
+    LOGE(TAG, "thread_sem_init: sem allocate failed");
+    aos_free(sem);
+    return NULL;
+  }
+
+  aos_task_setspecific(sys_thread_sem_key, sem);
+
+  LWIP_DEBUGF(THREAD_SAFE_DEBUG, ("sem_init s=%p\n", sem));
+
+  return sem;
+}
+
+void sys_thread_sem_deinit(void)
+{
+  sys_sem_t *sem = aos_task_getspecific(sys_thread_sem_key);
+
+  if (sem != NULL) {
+    sys_thread_sem_free(sem);
+    aos_task_setspecific(sys_thread_sem_key, NULL);
+  }
+
+  LWIP_DEBUGF(THREAD_SAFE_DEBUG, ("sem_deinit s=%p\n", sem));
+}
+#endif /* # if LWIP_NETCONN_SEM_PER_THREAD */

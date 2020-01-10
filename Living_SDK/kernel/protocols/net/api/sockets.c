@@ -59,6 +59,7 @@
 #include "lwip/memp.h"
 #include "lwip/pbuf.h"
 #include "lwip/priv/tcpip_priv.h"
+#include "lwip/priv/api_msg.h"
 #if LWIP_CHECKSUM_ON_COPY
 #include "lwip/inet_chksum.h"
 #endif
@@ -324,6 +325,10 @@ static void lwip_setsockopt_callback(void *arg);
 #endif
 static u8_t lwip_getsockopt_impl(int s, int level, int optname, void *optval, socklen_t *optlen);
 static u8_t lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_t optlen);
+
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+sys_mutex_t _sctrl_mutex;
+#endif
 
 #if LWIP_IPV4 && LWIP_IPV6
 static void
@@ -633,14 +638,24 @@ lwip_close(int s)
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_close(%d)\n", s));
 
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
+
   event = tryget_event(s);
   if (event) {
     event->used = 0;
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return 0;
   }
 
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -658,11 +673,17 @@ lwip_close(int s)
   err = netconn_delete(sock->conn);
   if (err != ERR_OK) {
     sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
   free_socket(sock, is_tcp);
   set_errno(0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return 0;
 }
 
@@ -672,14 +693,24 @@ lwip_connect(int s, const struct sockaddr *name, socklen_t namelen)
   struct lwip_sock *sock;
   err_t err;
 
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
+
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
   if (!SOCK_ADDR_TYPE_MATCH_OR_UNSPEC(name, sock)) {
     /* sockaddr does not match socket type (IPv4/IPv6) */
     sock_set_errno(sock, err_to_errno(ERR_VAL));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -707,11 +738,17 @@ lwip_connect(int s, const struct sockaddr *name, socklen_t namelen)
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d) failed, err=%d\n", s, err));
     sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d) succeeded\n", s));
   sock_set_errno(sock, 0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return 0;
 }
 
@@ -768,8 +805,16 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
   err_t            err;
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d, %p, %"SZT_F", 0x%x, ..)\n", s, mem, len, flags));
+
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
+
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -789,6 +834,9 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
         }
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): returning EWOULDBLOCK\n", s));
         sock_set_errno(sock, EWOULDBLOCK);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+        sys_mutex_unlock(&_sctrl_mutex);
+#endif
         return -1;
       }
 
@@ -810,12 +858,18 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
           }
           /* already received data, return that */
           sock_set_errno(sock, 0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+          sys_mutex_unlock(&_sctrl_mutex);
+#endif
           return off;
         }
         /* We should really do some error checking here. */
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d): buf == NULL, error is \"%s\"!\n",
           s, lwip_strerr(err)));
         sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+        sys_mutex_unlock(&_sctrl_mutex);
+#endif
         if (err == ERR_CLSD) {
           return 0;
         } else {
@@ -919,6 +973,9 @@ lwip_recvfrom(int s, void *mem, size_t len, int flags,
   } while (!done);
 
   sock_set_errno(sock, 0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return off;
 }
 
@@ -941,20 +998,35 @@ lwip_send(int s, const void *data, size_t size, int flags)
   err_t err;
   u8_t write_flags;
   size_t written;
+  int ret;
+
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d, data=%p, size=%"SZT_F", flags=0x%x)\n",
                               s, data, size, flags));
 
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
 #if (LWIP_UDP || LWIP_RAW)
-    return lwip_sendto(s, data, size, flags, NULL, 0);
+    ret = lwip_sendto(s, data, size, flags, NULL, 0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
+    return ret;
 #else /* (LWIP_UDP || LWIP_RAW) */
     sock_set_errno(sock, err_to_errno(ERR_ARG));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
 #endif /* (LWIP_UDP || LWIP_RAW) */
   }
@@ -971,6 +1043,9 @@ lwip_send(int s, const void *data, size_t size, int flags)
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d) err=%d written=%"SZT_F"\n", s, err, written));
   sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return (err == ERR_OK ? (int)written : -1);
 }
 
@@ -986,8 +1061,15 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
   int size = 0;
   err_t err = ERR_OK;
 
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
+
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -1030,9 +1112,15 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
       }
     }
     sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return size;
 #else /* LWIP_TCP */
     sock_set_errno(sock, err_to_errno(ERR_ARG));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
 #endif /* LWIP_TCP */
   }
@@ -1050,6 +1138,9 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
     chain_buf = netbuf_new();
     if (!chain_buf) {
       sock_set_errno(sock, err_to_errno(ERR_MEM));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+      sys_mutex_unlock(&_sctrl_mutex);
+#endif
       return -1;
     }
     if (msg->msg_name) {
@@ -1115,10 +1206,18 @@ lwip_sendmsg(int s, const struct msghdr *msg, int flags)
     netbuf_delete(chain_buf);
 
     sock_set_errno(sock, err_to_errno(err));
+
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
+
     return (err == ERR_OK ? size : -1);
   }
 #else /* LWIP_UDP || LWIP_RAW */
   sock_set_errno(sock, err_to_errno(ERR_ARG));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return -1;
 #endif /* LWIP_UDP || LWIP_RAW */
 }
@@ -1133,17 +1232,31 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   u16_t remote_port;
   struct netbuf buf;
 
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
+
   sock = get_socket(s);
   if (!sock) {
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
+
     return -1;
   }
 
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
 #if LWIP_TCP
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return lwip_send(s, data, size, flags);
 #else /* LWIP_TCP */
     LWIP_UNUSED_ARG(flags);
     sock_set_errno(sock, err_to_errno(ERR_ARG));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
 #endif /* LWIP_TCP */
   }
@@ -1151,6 +1264,9 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   if ((to != NULL) && !SOCK_ADDR_TYPE_MATCH(to, sock)) {
     /* sockaddr does not match socket type (IPv4/IPv6) */
     sock_set_errno(sock, err_to_errno(ERR_VAL));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -1217,6 +1333,10 @@ lwip_sendto(int s, const void *data, size_t size, int flags,
   netbuf_free(&buf);
 
   sock_set_errno(sock, err_to_errno(err));
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
+
   return (err == ERR_OK ? short_size : -1);
 }
 
@@ -1226,9 +1346,19 @@ lwip_socket(int domain, int type, int protocol)
   struct netconn *conn;
   int i;
 
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  if (sys_mutex_valid(&_sctrl_mutex) == 0) {
+      sys_mutex_new(&_sctrl_mutex);
+  }
+#endif
+
 #if !LWIP_IPV6
   LWIP_UNUSED_ARG(domain); /* @todo: check this */
 #endif /* LWIP_IPV6 */
+
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_lock(&_sctrl_mutex);
+#endif
 
   /* create a netconn */
   switch (type) {
@@ -1254,12 +1384,18 @@ lwip_socket(int domain, int type, int protocol)
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(%d, %d/UNKNOWN, %d) = -1\n",
                                  domain, type, protocol));
     set_errno(EINVAL);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
   if (!conn) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("-1 / ENOBUFS (could not create netconn)\n"));
     set_errno(ENOBUFS);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
 
@@ -1268,11 +1404,17 @@ lwip_socket(int domain, int type, int protocol)
   if (i == -1) {
     netconn_delete(conn);
     set_errno(ENFILE);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+    sys_mutex_unlock(&_sctrl_mutex);
+#endif
     return -1;
   }
   conn->socket = i;
   LWIP_DEBUGF(SOCKETS_DEBUG, ("%d\n", i));
   set_errno(0);
+#ifdef CONFIG_SOCKET_ACCESS_CONTROL
+  sys_mutex_unlock(&_sctrl_mutex);
+#endif
   return i;
 }
 

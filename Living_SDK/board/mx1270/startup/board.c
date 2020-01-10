@@ -9,6 +9,12 @@
 #include "lega_common.h"
 #include "lega_wlan_api.h"
 
+#define EFUSE_SEL 0xd6
+
+#define SEL_VIRGIN 0x00
+#define SEL_MAC1 0x01
+#define SEL_MAC2 0x03
+
 
 #define SYS_APP_VERSION_SEG __attribute__((section("app_version_sec")))
 SYS_APP_VERSION_SEG const char app_version[] = SYSINFO_APP_VERSION;
@@ -21,9 +27,38 @@ extern int soc_pre_init(void);
 extern void ota_roll_back_pro(void);
 #endif
 
+static void efuse_read(uint8_t *data,uint8_t addr,uint8_t len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        data[i] = lega_efuse_byte_read(addr + i);
+    }
+}
+void efuse_info_update_cb(efuse_info_t *efuse_info)
+{
+    printf("efuse_info_update\r\n");
+    if (lega_efuse_byte_read(EFUSE_SEL) == SEL_MAC1)
+    {
+        efuse_read(efuse_info->mac_addr2,0x90,6);
+    }else if(lega_efuse_byte_read(EFUSE_SEL) == SEL_MAC2)
+    {
+        efuse_read(efuse_info->mac_addr2,0xC8,6);
+    }else{
+        printf("empty mac\r\n");
+    }
+    efuse_read(&(efuse_info->freq_err),0x96,1);
+    efuse_read(&(efuse_info->tmmt1),0x97,1);
+    efuse_read(&(efuse_info->tmmt2),0x98,1);
+    efuse_read(efuse_info->cal_tx_pwr2,0xAC,6);
+    efuse_read(efuse_info->cal_tx_evm2,0xB5,6);
+
+    efuse_read(efuse_info->cus_tx_pwr,0x99,19);
+    efuse_read(efuse_info->cus_tx_total_pwr,0xB2,3);
+}
 static void wifi_common_init()
 {
     printf("start------wifi_hal\r\n");
+    lega_wlan_register_efuse_info_update_cb(efuse_info_update_cb);
     hal_wifi_register_module(&sim_aos_wifi_lega);
     hal_wifi_init();
 }
@@ -68,7 +103,11 @@ void uart_init(void)
 #ifdef ALIOS_SUPPORT
     //uart_0.port=LEGA_UART1_INDEX;
     uart_0.port = PORT_UART_STD;  /*logic port*/
+#ifdef HIGHFREQ_MCU160_SUPPORT
     uart_0.config.baud_rate=UART_BAUDRATE_1000000;
+#else
+    uart_0.config.baud_rate=UART_BAUDRATE_115200;
+#endif
     uart_0.config.data_width = DATA_8BIT;
     uart_0.config.flow_control = FLOW_CTRL_DISABLED;
     uart_0.config.parity = PARITY_NO;
@@ -78,11 +117,13 @@ void uart_init(void)
 #endif
 }
 
+#ifdef HIGHFREQ_MCU160_SUPPORT
 //all peripheral reinit code should place here
 void peripheral_reinit(void)
 {
     uart_init();
 }
+#endif
 
 #ifdef SYSTEM_RECOVERY
 lega_wdg_dev_t lega_wdg;

@@ -12,6 +12,10 @@ $(NAME)_CFLAGS += -DCFG_SNIFFER_UNICAST_SUPPORT
 #$(NAME)_CFLAGS += -DXO_FREQ_BIAS_CONFIG
 $(NAME)_CFLAGS += -D_LOWER_CCA_THRESHOLD_
 
+ifneq ($(mcu_highfreq),true)
+$(NAME)_CFLAGS += -DPS_CLOSE_APLL
+endif
+
 #default a0v2 config
 ifeq ($(buildsoc),a0v1)
 $(NAME)_CFLAGS += -DLEGA_A0V1
@@ -34,7 +38,17 @@ GLOBAL_DEFINES += CONFIG_AOS_KV_PTN=6
 GLOBAL_DEFINES += CONFIG_AOS_KV_SECOND_PTN=7
 GLOBAL_DEFINES += CONFIG_AOS_KV_PTN_SIZE=4096
 GLOBAL_DEFINES += KV_CONFIG_TOTAL_SIZE=8192
+GLOBAL_DEFINES += CONFIG_AOS_KV_BUFFER_SIZE=8192
 GLOBAL_DEFINES += CONFIG_AOS_CLI_STACK_SIZE=4096
+GLOBAL_DEFINES += MBEDTLS_AES_ROM_TABLES
+
+ifeq ($(wifips),true)
+GLOBAL_DEFINES += WIFI_CONFIG_SUPPORT_LOWPOWER=1
+endif
+
+ifeq ($(mcu_highfreq),true)
+GLOBAL_DEFINES += HIGHFREQ_MCU160_SUPPORT
+endif
 
 GLOBAL_LDFLAGS += -mcpu=cortex-m4 -mthumb -Wl,-gc-sections
 
@@ -65,11 +79,16 @@ $(NAME)_SOURCES += hal/src/hw.c \
             hal/src/pwrmgmt_hal/board_cpu_pwr_rtc.c \
             hal/src/pwrmgmt_hal/board_cpu_pwr_systick.c
 
+ifeq ($(mcu_highfreq),true)
+$(NAME)_PREBUILT_LIBRARY := drivers/libs/$(HOST_ARCH)/mcu_160m/libasr_wifi.a
+else
+$(NAME)_PREBUILT_LIBRARY := drivers/libs/$(HOST_ARCH)/mcu_52m/libasr_wifi.a
+endif
+
 ifeq ($(VENDOR_MXCHIP),1)
 $(NAME)_SOURCES += hal/src/ota.c
-$(NAME)_PREBUILT_LIBRARY := drivers/libs/$(HOST_ARCH)/libasr_wifi.a
 else
-$(NAME)_PREBUILT_LIBRARY := drivers/libs/$(HOST_ARCH)/libasr_wifi_otaport.a
+$(NAME)_PREBUILT_LIBRARY += drivers/libs/$(HOST_ARCH)/libota_port.a
 endif
 
 #driver

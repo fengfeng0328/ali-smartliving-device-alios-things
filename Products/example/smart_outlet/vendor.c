@@ -93,14 +93,40 @@ void product_init_switch(void)
     int len = sizeof(int);
     int ret = 0;
 
+#if (REBOOT_STATE == LAST_STATE)
     ret = aos_kv_get(KV_KEY_SWITCH_STATE, (void *)&state, &len);
     LOG("get kv save switch state:%d, ret:%d", state, ret);
+    if (ret != 0)
+        state = ON;
+#elif (REBOOT_STATE == POWER_OFF)
+    state == OFF;
+#else
+    state == ON;
+#endif
     if (state == OFF) {
         product_set_switch(OFF);
     } else {
         product_set_switch(ON);
     }
 }
+
+#if (REBOOT_STATE == LAST_STATE)
+aos_timer_t g_timer_period_save_device_status;
+#define PERIOD_SAVE_DEVICE_STATUS_INTERVAL (1000 * 30)
+static void timer_period_save_device_status_cb(void *arg1, void *arg2)
+{
+    int state, len = sizeof(int);
+    int ret;
+
+    ret = aos_kv_get(KV_KEY_SWITCH_STATE, (void *)&state, &len);
+
+   if(ret != 0 || state != switch_state) {
+        LOG("KV DEVICE_STATUS Update!!!,ret=%d.\n",ret);
+        ret = aos_kv_set(KV_KEY_SWITCH_STATE, &switch_state, len, 0);
+        if (ret < 0) LOG("KV set Error: %d\r\n", __LINE__);
+    }
+}
+#endif
 
 void vendor_product_init(void)
 {
@@ -117,13 +143,16 @@ void vendor_product_init(void)
     hal_gpio_init(&io_key);
 
     product_init_switch();
+#if (REBOOT_STATE == LAST_STATE)
+    aos_timer_new(&g_timer_period_save_device_status, timer_period_save_device_status_cb, NULL, PERIOD_SAVE_DEVICE_STATUS_INTERVAL, 1);
+#endif
 }
 
 void product_set_switch(bool state)
 {
     int ret = 0;
 
-    //LOG("product_set_switch, state:%d, switch_state:%d", state, switch_state);
+    LOG("product_set_switch, state:%d, switch_state:%d", state, switch_state);
     if (switch_state == (int)state) {
         return;
     }
@@ -143,8 +172,8 @@ void product_set_switch(bool state)
 #endif
     switch_state = (int)state;
     product_set_led(state);
-    //ret = aos_kv_set(KV_KEY_SWITCH_STATE, (const void *)&switch_state, sizeof(int), 1);
-    //LOG("set kv switch state:%d, ret:%d", switch_state, ret);
+
+    update_power_state(state);
 }
 
 bool product_get_switch(void)

@@ -75,11 +75,11 @@ void key_detect_event_task(void)
                 press_key_cnt = 0;
             }
         }
-        if (press_key_cnt >= 50) {
+        if (press_key_cnt >= 100) {
             do_awss_reset();
             break;
         }
-        aos_msleep(100);
+        aos_msleep(50);
     }
 }
 
@@ -218,7 +218,7 @@ void check_factory_mode(void)
     netmgr_ap_config_t ap_config;
     memset(&ap_config, 0, sizeof(netmgr_ap_config_t));
 
-    aos_task_new("indicate net state", indicate_net_state_task, NULL, 4096);
+    aos_task_new("indicate net state", indicate_net_state_task, NULL, 1024);
 
     netmgr_get_ap_config(&ap_config);
     if (strlen(ap_config.ssid) <= 0) {

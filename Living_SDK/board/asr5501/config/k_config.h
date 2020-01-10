@@ -80,7 +80,7 @@
 
 /*must reserve enough stack size for timer cb will consume*/
 #ifndef RHINO_CONFIG_TIMER_TASK_STACK_SIZE
-#define RHINO_CONFIG_TIMER_TASK_STACK_SIZE   2048
+#define RHINO_CONFIG_TIMER_TASK_STACK_SIZE   512
 #endif
 #ifndef RHINO_CONFIG_TIMER_TASK_PRI
 #define RHINO_CONFIG_TIMER_TASK_PRI          5
@@ -140,6 +140,10 @@
 
 #ifndef WIFI_CONFIG_RECEIVE_DTIM
 #define WIFI_CONFIG_RECEIVE_DTIM             1
+#endif
+
+#ifndef RHINO_CONFIG_GCC_RETADDR
+#define RHINO_CONFIG_GCC_RETADDR             1
 #endif
 
 #endif /* K_CONFIG_H */

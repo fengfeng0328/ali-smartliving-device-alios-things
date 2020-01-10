@@ -188,8 +188,12 @@ int32_t lega_pwm_init(lega_pwm_dev_t *pwm)
     REG_WR(PERI_CLK_CFG, (reg_value|PWM_CLK_EN));
 
     PWM->PWMCFG &= ~(1 << pwm->port);
+
+#ifdef HIGHFREQ_MCU160_SUPPORT
     PWM->PWMCFG |= (CNT_CLK_DIV_EN | CLK_DIV_CFG);
-    pwm->config.freq = pwm->config.freq * (1 << ((CLK_DIV_CFG >> 24) + 1));
+    pwm->config.freq = pwm->config.freq *(1<<((CLK_DIV_CFG>>24)+1));
+#endif
+
     lega_pwm_cfg(pwm);
     PWM->PWMINVERTTRIG = 0; //invert control
     return 0;

@@ -802,7 +802,7 @@ static int CoAPRequestMessage_handle(CoAPContext *context, NetworkAddr *remote, 
     return ret;
 }
 
-
+static int last_msg_id = -1;
 static void CoAPMessage_handle(CoAPContext *context,
                                NetworkAddr       *remote,
                                unsigned char     *buf,
@@ -826,6 +826,11 @@ static void CoAPMessage_handle(CoAPContext *context,
     COAP_FLOW("--------Receive a Message------");
 #endif
     CoAPMessage_dump(remote, &message);
+    if (message.header.msgid == last_msg_id) {
+        COAP_FLOW("Discard duplicate Message id %d", last_msg_id);
+        return;
+    }
+    last_msg_id = message.header.msgid;
 
     if (COAPAckMsg(message.header) || CoAPResetMsg(message.header)) {
         // TODO: implement handle client observe
