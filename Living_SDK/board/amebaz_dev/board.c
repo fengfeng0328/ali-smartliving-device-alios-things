@@ -13,7 +13,7 @@ const hal_logic_partition_t hal_partitions[] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "Bootloader",
-        .partition_start_addr       = 0x0000B000,
+        .partition_start_addr       = 0x0,
         .partition_length           = 0x8000,    //32k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_DIS,
     },
@@ -21,8 +21,8 @@ const hal_logic_partition_t hal_partitions[] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "Application",
-        .partition_start_addr       = 0x13000,
-        .partition_length           = 0xB5000, //724k bytes
+        .partition_start_addr       = 0xB000,
+        .partition_length           = 0xF2000, //568k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
 
@@ -30,8 +30,8 @@ const hal_logic_partition_t hal_partitions[] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "PARAMETER1",
-        .partition_start_addr       = 0x000C8000,
-        .partition_length           = 0x4000, // 16k bytes
+        .partition_start_addr       = 0xFD000,
+        .partition_length           = 0x1000, // 4k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
 
@@ -39,34 +39,24 @@ const hal_logic_partition_t hal_partitions[] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "PARAMETER2",
-        .partition_start_addr       = 0x000CC000,
-        .partition_length           = 0x4000, // 16k bytes
+        .partition_start_addr       = 0xFE000,
+        .partition_length           = 0x2000, // 8k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
 
-#if 0
-    [HAL_PARTITION_ATE] =
-    {
-        .partition_owner           = HAL_FLASH_EMBEDDED,
-        .partition_description     = "ATE",
-        .partition_start_addr      = 0x000D0000,
-        .partition_length          = 0x40000, //256k bytes
-        .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
-    },
-#endif
     [HAL_PARTITION_OTA_TEMP] =
     {
         .partition_owner           = HAL_FLASH_EMBEDDED,
         .partition_description     = "OTA Storage",
-        .partition_start_addr      = 0x00110000,
-        .partition_length          = 0xB5000, //724k bytes
+        .partition_start_addr      = 0x100000,
+        .partition_length          = 0xF2000, //568k bytes
         .partition_options         = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
     [HAL_PARTITION_PARAMETER_3] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "PARAMETER3",
-        .partition_start_addr       = 0x001C5000,
+        .partition_start_addr       = 0x1FD000,
         .partition_length           = 0x1000, // 4k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
@@ -74,11 +64,13 @@ const hal_logic_partition_t hal_partitions[] =
     {
         .partition_owner            = HAL_FLASH_EMBEDDED,
         .partition_description      = "PARAMETER4",
-        .partition_start_addr       = 0x001C6000,
-        .partition_length           = 0x1000,// 4k bytes
+        .partition_start_addr       = 0x1FE000,
+        .partition_length           = 0x2000,// 8k bytes
         .partition_options          = PAR_OPT_READ_EN | PAR_OPT_WRITE_EN,
     },
 };
+
+
 
 void board_init(void)
 {
